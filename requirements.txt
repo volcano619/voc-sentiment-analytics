@@ -1,0 +1,13 @@
+# Voice of Customer Sentiment Analysis
+# Dependencies
+
+# Core
+streamlit>=1.28.0
+numpy>=1.24.0
+pandas>=2.0.0
+
+# NLP
+textblob>=0.17.1
+
+# Visualization
+plotly>=5.15.0
