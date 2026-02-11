@@ -11,6 +11,13 @@ An **AI-powered Voice of Customer platform** that transforms unstructured feedba
 
 ---
 
+## 📸 Business Results
+
+### Business Impact Dashboard — Revenue Protection & Customer Retention
+![VoC Business Impact — 90% faster issue detection, 43% churn reduction, 150% efficiency gain, $750K revenue retained, 5-7.5x ROI](./screenshots/sentiment_business_impact.png)
+
+---
+
 ## 1. Business Problem
 
 ### The Customer Experience Gap
