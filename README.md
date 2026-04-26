@@ -19,6 +19,8 @@ An **AI-powered Voice of Customer platform** that transforms unstructured feedba
 ### Solution UI — Real-Time Sentiment Dashboard
 ![VoC Solution UI — Aspect-based analysis, sentiment trends, churn risk alerts, actionable insights](./screenshots/sentiment_solution_ui_v2.png)
 
+**🔴 Live Cloud Deployment:** [https://huggingface.co/spaces/vnicks177/SentimentAnalysis-demo](https://huggingface.co/spaces/vnicks177/SentimentAnalysis-demo)
+
 ---
 
 ## 1. Business Problem
