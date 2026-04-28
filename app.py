@@ -97,8 +97,14 @@ with st.sidebar:
     
     # Target settings
     st.markdown("### 🎯 Business Targets")
-    target_nps = st.number_input("Target NPS", value=TARGET_NPS, min_value=-100, max_value=100)
-    target_csat = st.number_input("Target CSAT", value=TARGET_CSAT, min_value=1.0, max_value=5.0, step=0.1)
+    
+    if "target_nps" not in st.session_state:
+        st.session_state.target_nps = TARGET_NPS
+    if "target_csat" not in st.session_state:
+        st.session_state.target_csat = TARGET_CSAT
+        
+    target_nps = st.number_input("Target NPS", key="target_nps", min_value=-100, max_value=100)
+    target_csat = st.number_input("Target CSAT", key="target_csat", min_value=1.0, max_value=5.0, step=0.1)
     
     st.markdown("---")
     st.markdown("### 📊 Model Info")
