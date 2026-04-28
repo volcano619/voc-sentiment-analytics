@@ -25,8 +25,10 @@ class BusinessMetricsCalculator:
     Calculate business KPIs from sentiment analysis results.
     """
     
-    def __init__(self):
+    def __init__(self, target_nps=TARGET_NPS, target_csat=TARGET_CSAT):
         self.history = []
+        self.target_nps = target_nps
+        self.target_csat = target_csat
     
     def calculate_nps(self, results: List[Dict]) -> Dict:
         """
@@ -52,8 +54,8 @@ class BusinessMetricsCalculator:
             "detractors": detractors,
             "detractors_pct": round(detractors / len(results) * 100, 1),
             "total": len(results),
-            "vs_target": round(nps - TARGET_NPS, 1),
-            "status": "🟢 Above Target" if nps >= TARGET_NPS else "🔴 Below Target"
+            "vs_target": round(nps - self.target_nps, 1),
+            "status": "🟢 Above Target" if nps >= self.target_nps else "🔴 Below Target"
         }
     
     def calculate_csat(self, results: List[Dict]) -> Dict:
@@ -85,8 +87,8 @@ class BusinessMetricsCalculator:
             "csat": round(avg_csat, 2),
             "distribution": distribution,
             "total": len(results),
-            "vs_target": round(avg_csat - TARGET_CSAT, 2),
-            "status": "🟢 Above Target" if avg_csat >= TARGET_CSAT else "🔴 Below Target",
+            "vs_target": round(avg_csat - self.target_csat, 2),
+            "status": "🟢 Above Target" if avg_csat >= self.target_csat else "🔴 Below Target",
             "satisfied_pct": round(sum(1 for s in scores if s >= 4) / len(scores) * 100, 1)
         }
     
@@ -146,9 +148,9 @@ class DashboardMetrics:
     Aggregate metrics for executive dashboard.
     """
     
-    def __init__(self, results: List[Dict]):
+    def __init__(self, results: List[Dict], target_nps=TARGET_NPS, target_csat=TARGET_CSAT):
         self.results = results
-        self.calculator = BusinessMetricsCalculator()
+        self.calculator = BusinessMetricsCalculator(target_nps=target_nps, target_csat=target_csat)
     
     def get_executive_summary(self) -> Dict:
         """

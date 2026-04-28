@@ -152,7 +152,7 @@ with tab1:
             r["customer_id"] = data[i]["customer_id"]
     
     # Get executive summary
-    dashboard = DashboardMetrics(results)
+    dashboard = DashboardMetrics(results, target_nps=target_nps, target_csat=target_csat)
     summary = dashboard.get_executive_summary()
     
     # Key metrics row
@@ -268,7 +268,7 @@ with tab3:
     if 'results' not in dir() or not results:
         results = [aspect_analyzer.analyze(d["text"]) for d in data]
     
-    calculator = BusinessMetricsCalculator()
+    calculator = BusinessMetricsCalculator(target_nps=target_nps, target_csat=target_csat)
     nps_metrics = calculator.calculate_nps(results)
     csat_metrics = calculator.calculate_csat(results)
     
