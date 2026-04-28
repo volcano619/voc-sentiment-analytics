@@ -81,8 +81,10 @@ with st.sidebar:
     
     # Data refresh
     if st.button("🔄 Refresh Data"):
-        st.cache_data.clear()
-        st.rerun()
+        with st.spinner("Generating new feedback samples..."):
+            generate_synthetic_dataset() # Force new generation
+            st.cache_data.clear()
+            st.rerun()
     
     st.markdown("---")
     
