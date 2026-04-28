@@ -325,24 +325,48 @@ with tab4:
     # Get aspect breakdown
     aspect_breakdown = aspect_analyzer.get_aspect_breakdown(results)
     
-    # Display as cards
-    cols = st.columns(3)
+    # Get aspect breakdown
+    aspect_breakdown = aspect_analyzer.get_aspect_breakdown(results)
     
-    for i, (aspect, metrics) in enumerate(aspect_breakdown.items()):
-        if metrics["total"] > 0:
-            with cols[i % 3]:
-                st.markdown(f"#### {aspect.replace('_', ' ').title()}")
-                st.markdown(f"**Status:** {metrics['status']}")
-                st.markdown(f"**Health Score:** {metrics['health_score']}")
-                
-                fig = px.pie(
-                    values=[metrics['counts']['positive'], metrics['counts']['neutral'], metrics['counts']['negative']],
-                    names=['Positive', 'Neutral', 'Negative'],
-                    color_discrete_sequence=['#10B981', '#94A3B8', '#EF4444'],
-                    hole=0.6
-                )
-                fig.update_layout(height=200, showlegend=False)
-                st.plotly_chart(fig, use_container_width=True)
+    # Create Heatmap Data
+    aspects_list = list(aspect_breakdown.keys())
+    sentiment_cats = ["Positive", "Neutral", "Negative"]
+    
+    z_data = []
+    for aspect in aspects_list:
+        counts = aspect_breakdown[aspect]["counts"]
+        total = aspect_breakdown[aspect]["total"]
+        z_data.append([
+            counts["positive"] / total * 100,
+            counts["neutral"] / total * 100,
+            counts["negative"] / total * 100
+        ])
+    
+    # Display Heatmap
+    st.markdown("#### Aspect-Sentiment Heatmap (%)")
+    fig = px.imshow(
+        z_data,
+        labels=dict(x="Sentiment", y="Aspect", color="Percentage"),
+        x=sentiment_cats,
+        y=[a.replace('_', ' ').title() for a in aspects_list],
+        color_continuous_scale='RdYlGn',
+        text_auto=".1f",
+        aspect="auto"
+    )
+    fig.update_layout(height=450)
+    st.plotly_chart(fig, use_container_width=True)
+    
+    st.markdown("---")
+    
+    # Detailed stats in cards
+    cols = st.columns(3)
+    for i, aspect in enumerate(aspects_list):
+        metrics = aspect_breakdown[aspect]
+        with cols[i % 3]:
+            st.markdown(f"**{aspect.replace('_', ' ').title()}**")
+            st.markdown(f"Status: {metrics['status']}")
+            st.markdown(f"Health Score: {metrics['health_score']}")
+            st.markdown("---")
 
 
 # ============================================================================
