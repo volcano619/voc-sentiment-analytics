@@ -106,6 +106,15 @@ with st.sidebar:
     st.markdown("- **Classes**: 5 (Very Neg → Very Pos)")
     st.markdown("- **Aspects**: 6 categories")
 
+    # Help Section
+    shared_ui.add_help_section(
+        "Voice of Customer Analytics",
+        "AI-powered intelligence system for analyzing customer feedback at scale.",
+        "Use the 'Analyze Text' tab for real-time sentiment or 'Executive Dashboard' for business-wide trends.",
+        "Traditional sentiment (Good/Bad) misses the 'Why'; this app identifies exactly WHICH area (Pricing, Support) is hurting NPS.",
+        "Instead of just seeing 10% unhappy customers, you see '80% of unhappy customers are complaining about DELIVERY'."
+    )
+
 
 # ============================================================================
 # MAIN CONTENT
