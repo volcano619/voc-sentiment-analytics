@@ -24,6 +24,7 @@ from models.preprocessing import load_feedback_data, generate_synthetic_dataset,
 from models.sentiment import SentimentAnalyzer
 from models.aspect import AspectExtractor, AspectSentimentAnalyzer
 from models.business_metrics import BusinessMetricsCalculator, DashboardMetrics
+import shared_ui
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -36,25 +37,15 @@ st.set_page_config(
     initial_sidebar_state="expanded"
 )
 
-# Custom CSS
+# Apply global theme
+shared_ui.apply_global_theme()
+
+# Custom project-specific CSS extensions
 st.markdown("""
 <style>
-    .main-header {
-        font-size: 2.5rem;
-        font-weight: 700;
-        background: linear-gradient(90deg, #3498db 0%, #9b59b6 100%);
-        -webkit-background-clip: text;
-        -webkit-text-fill-color: transparent;
-    }
-    .metric-card {
-        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-        padding: 20px;
-        border-radius: 10px;
-        color: white;
-    }
-    .nps-promoter { color: #27ae60; font-weight: bold; }
-    .nps-passive { color: #f39c12; font-weight: bold; }
-    .nps-detractor { color: #e74c3c; font-weight: bold; }
+    .nps-promoter { color: #10B981; font-weight: 700; }
+    .nps-passive { color: #F59E0B; font-weight: 700; }
+    .nps-detractor { color: #EF4444; font-weight: 700; }
 </style>
 """, unsafe_allow_html=True)
 
@@ -119,8 +110,10 @@ with st.sidebar:
 # ============================================================================
 
 # Header
-st.markdown('<p class="main-header">🎯 Voice of Customer Analytics</p>', unsafe_allow_html=True)
-st.markdown("AI-powered sentiment analysis with business metrics focus | *For AI Product Managers*")
+shared_ui.add_header(
+    "🎯 Voice of Customer Analytics",
+    "AI-powered sentiment analysis with business metrics focus | *Reducing the $75B annual cost of poor customer experience*"
+)
 
 # Load data and analyzer
 data = load_data()
@@ -165,23 +158,13 @@ with tab1:
     col1, col2, col3, col4 = st.columns(4)
     
     with col1:
-        nps = summary["nps"]["nps"]
-        delta = summary["nps"]["vs_target"]
-        st.metric("Net Promoter Score", f"{nps:+.0f}", f"{delta:+.0f} vs target")
-    
+        shared_ui.create_metric_card("Net Promoter Score", f"{summary['nps']['nps']:+.0f}", delta=f"{summary['nps']['vs_target']:+.0f} vs target")
     with col2:
-        csat = summary["csat"]["csat"]
-        delta = summary["csat"]["vs_target"]
-        st.metric("Customer Satisfaction", f"{csat:.2f}/5", f"{delta:+.2f} vs target")
-    
+        shared_ui.create_metric_card("Customer Satisfaction", f"{summary['csat']['csat']:.2f}/5", delta=f"{summary['csat']['vs_target']:+.2f} vs target")
     with col3:
-        churn_risk = summary["churn"]["average_risk"]
-        high_risk = summary["churn"]["high_risk_count"]
-        st.metric("Avg Churn Risk", f"{churn_risk:.0%}", f"{high_risk} high risk")
-    
+        shared_ui.create_metric_card("Avg Churn Risk", f"{summary['churn']['average_risk']:.0%}", delta=f"{summary['churn']['high_risk_count']} high risk", delta_pos=False)
     with col4:
-        urgent = summary["urgent_actions"]
-        st.metric("Urgent Actions", urgent, "P0/P1 priority")
+        shared_ui.create_metric_card("Urgent Actions", str(summary['urgent_actions']), delta="P0/P1 priority", delta_pos=False if summary['urgent_actions'] > 0 else True)
     
     st.markdown(f"**Overall Health:** {summary['summary']['overall_health']}")
     
@@ -196,7 +179,7 @@ with tab1:
         fig = px.pie(
             values=list(dist.values()),
             names=list(dist.keys()),
-            color_discrete_sequence=['#e74c3c', '#f39c12', '#95a5a6', '#27ae60', '#2ecc71']
+            color_discrete_sequence=['#EF4444', '#F59E0B', '#94A3B8', '#10B981', '#059669']
         )
         fig.update_layout(height=300)
         st.plotly_chart(fig, use_container_width=True)
@@ -207,7 +190,7 @@ with tab1:
         fig = go.Figure(go.Bar(
             x=['Promoters', 'Passives', 'Detractors'],
             y=[nps_data['promoters_pct'], nps_data['passives_pct'], nps_data['detractors_pct']],
-            marker_color=['#27ae60', '#f39c12', '#e74c3c'],
+            marker_color=['#10B981', '#F59E0B', '#EF4444'],
             text=[f"{nps_data['promoters_pct']}%", f"{nps_data['passives_pct']}%", f"{nps_data['detractors_pct']}%"],
             textposition='auto'
         ))
@@ -250,10 +233,10 @@ with tab2:
             
             with col2:
                 st.markdown("#### Business Impact")
-                st.markdown(f"**Churn Risk:** {result['churn_risk']:.0%}")
-                st.markdown(f"**Priority:** {result['priority']}")
-                st.markdown(f"**Predicted NPS:** {result['predicted_nps']}/10")
-                st.markdown(f"**Recommended Action:** {result['recommended_action']}")
+                # Metrics cards for business impact
+                shared_ui.create_metric_card("Churn Risk", f"{result['churn_risk']:.0%}", delta=result['priority'], delta_pos=False if result['churn_risk'] > 0.5 else True)
+                shared_ui.create_metric_card("Predicted NPS", f"{result['predicted_nps']}/10", delta="Likely score")
+                st.info(f"**Recommendation:** {result['recommended_action']}")
             
             st.markdown("---")
             st.markdown("#### Aspect Analysis")
@@ -294,9 +277,9 @@ with tab3:
                 'axis': {'range': [-100, 100]},
                 'bar': {'color': "darkblue"},
                 'steps': [
-                    {'range': [-100, 0], 'color': "#ffcccb"},
-                    {'range': [0, 50], 'color': "#ffffcc"},
-                    {'range': [50, 100], 'color': "#90EE90"}
+                    {'range': [-100, 0], 'color': "#FEE2E2"},
+                    {'range': [0, 50], 'color': "#FEF3C7"},
+                    {'range': [50, 100], 'color': "#D1FAE5"}
                 ],
                 'threshold': {
                     'line': {'color': "red", 'width': 4},
@@ -322,12 +305,12 @@ with tab3:
             x=['1 Star', '2 Stars', '3 Stars', '4 Stars', '5 Stars'],
             y=[csat_metrics['distribution'].get(i, 0) for i in range(1, 6)],
             color=['1 Star', '2 Stars', '3 Stars', '4 Stars', '5 Stars'],
-            color_discrete_sequence=['#e74c3c', '#f39c12', '#95a5a6', '#27ae60', '#2ecc71']
+            color_discrete_sequence=['#EF4444', '#F59E0B', '#94A3B8', '#10B981', '#059669']
         )
         fig.update_layout(height=300, showlegend=False, yaxis_title="Count")
         st.plotly_chart(fig, use_container_width=True)
         
-        st.metric("Average CSAT", f"{csat_metrics['csat']:.2f}/5", f"{csat_metrics['vs_target']:+.2f} vs target")
+        shared_ui.create_metric_card("Average CSAT", f"{csat_metrics['csat']:.2f}/5", delta=f"{csat_metrics['vs_target']:+.2f} vs target")
         st.markdown(f"**Satisfied (4-5 stars):** {csat_metrics['satisfied_pct']}%")
 
 
@@ -355,8 +338,8 @@ with tab4:
                 fig = px.pie(
                     values=[metrics['counts']['positive'], metrics['counts']['neutral'], metrics['counts']['negative']],
                     names=['Positive', 'Neutral', 'Negative'],
-                    color_discrete_sequence=['#27ae60', '#95a5a6', '#e74c3c'],
-                    hole=0.4
+                    color_discrete_sequence=['#10B981', '#94A3B8', '#EF4444'],
+                    hole=0.6
                 )
                 fig.update_layout(height=200, showlegend=False)
                 st.plotly_chart(fig, use_container_width=True)
@@ -424,5 +407,13 @@ st.markdown("""
 <div style="text-align: center; color: #666; font-size: 0.9rem;">
     🎯 Voice of Customer Analytics | AI-Powered Business Intelligence<br>
     <em>Helping reduce the $75B annual cost of poor customer experience</em>
+</div>
+""", unsafe_allow_html=True)
+
+st.markdown("---")
+st.markdown("""
+<div style="text-align: center; color: #64748B; font-size: 0.875rem; padding: 2rem 0;">
+    🎯 Voice of Customer Analytics | Built with Transformers + Aspect-Based SA<br>
+    <span style="font-family: 'Roboto Mono', monospace;">Version 1.4.0-Premium</span>
 </div>
 """, unsafe_allow_html=True)
