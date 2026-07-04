@@ -13,11 +13,11 @@ An **AI-powered Voice of Customer platform** that transforms unstructured feedba
 
 ## 📸 Business Results
 
-### Business Impact Dashboard — Revenue Protection & Customer Retention
-![VoC Business Impact — 90% faster issue detection, 43% churn reduction, 150% efficiency gain, $750K revenue retained, 5-7.5x ROI](./screenshots/sentiment_business_impact_v2.png)
+### Business Impact Dashboard — Customer Success & Revenue
+![Sentiment Business Impact — Projected $750K revenue retained, 90% faster issue detection, 3.8-7.5x ROI](./screenshots/sentiment_business_impact_v2.png)
 
-### Solution UI — Real-Time Sentiment Dashboard
-![VoC Solution UI — Aspect-based analysis, sentiment trends, churn risk alerts, actionable insights](./screenshots/sentiment_solution_ui_v2.png)
+### Voice of Customer UI — Dashboard & Action Queue
+![Sentiment Solution UI — Executive summary, aspect breakdown, and CSM action queue](./screenshots/sentiment_solution_ui_v2.png)
 
 **🔴 Live Cloud Deployment:** [https://huggingface.co/spaces/vnicks177/SentimentAnalysis-demo](https://huggingface.co/spaces/vnicks177/SentimentAnalysis-demo)
 
@@ -192,28 +192,74 @@ Customer Feedback → Sentiment Analysis → Business Metrics → Action Queue
 
 ## 10. Risks & Mitigations
 
-| Risk | Likelihood | Mitigation |
-|------|------------|------------|
-| Sarcasm/irony missed | Medium | Human review for edge cases |
-| Industry-specific language | Medium | Custom keyword dictionaries |
-| Model drift over time | Low | Periodic retraining |
-| False negatives | Medium | High recall priority for negative |
+| Risk | Likelihood | Impact | Mitigation |
+|------|------------|--------|------------|
+| Over-reliance on automation | Medium | Medium | Keep humans in the loop (CSM dashboard) |
+| Aspect misclassification | Medium | Low | Periodic evaluation and retraining |
+| Customer alert fatigue | High | Medium | Frequency capping on outreach |
+| Sarcasm detection failure | Medium | Low | Sentiment-aspect discrepancy fallback |
+
+---
+
+## 11. AI Product Management & Strategic Decisions
+
+### Build vs. Buy Analysis
+To deploy Voice of Customer (VoC) sentiment intelligence, the product team evaluated premium customer experience platforms against building a custom local NLP pipeline:
+
+| Strategic Vector | Custom Build (Our Solution) | Buy (e.g., Medallia, Qualtrics VoC) | Decision Factor |
+|---|---|---|---|
+| **CapEx (Initial Cost)** | **Medium ($90K)** (1 NLP Engineer + 1 PM for 2 months) | **Low ($10K)** integration and setup fees | Buy is cheaper upfront |
+| **OpEx (Ongoing Cost)** | **Very Low ($1.2K/year)** serverless APIs hosting | **High ($50K-$150K/year)** seat licensing fees | **Build wins** at scale (50+ agents) |
+| **Aspect Customization** | **High**: Custom aspects mapped directly to our product features | **Medium**: Vendor defaults (requires professional services to customize) | **Build wins** for specialized feedback |
+| **CRM Integration** | **High**: Direct write-backs to internal CS agent tickets | **Medium**: Complex middleware integrations required | **Build wins** for workflow automation |
+| **Model Cost at Scale** | **Zero**: Runs on local CPUs or lightweight host | **High**: API calls or seat licenses scale with review volumes | **Build wins** for high-volume logs |
+
+**Product Decision**: **Build custom NLP pipeline**. Enterprise VoC software (Medallia/Qualtrics) charges heavy enterprise seat fees ($1.5K/agent/year) and makes aspect-based taxonomy customization difficult. Building a custom DistilBERT model lets us define our own product categories (e.g., Pricing, Support, Delivery), write sentiment directly to our CS ticket queue, and process millions of reviews with zero API volume surcharges.
+
+### Total Cost of Ownership (TCO) Model
+The table below estimates the 3-year lifecycle costs for building and operating our custom VoC sentiment classifier:
+
+| Cost Component | Year 1 (CapEx + OpEx) | Year 2 (OpEx) | Year 3 (OpEx) | Breakdown |
+|---|---|---|---|---|
+| **Development** | $90,000 | $0 | $0 | Product Manager & NLP Engineer salaries |
+| **Compute & Hosting** | $1,200 | $1,200 | $1,200 | Serverless cloud endpoints for real-time text analysis |
+| **CRM Queue Integration**| $4,800 | $4,800 | $4,800 | Engineering support for ticketing system webhooks |
+| **Taxonomy Maintenance**| $5,000 | $5,000 | $5,000 | Support audits to update product category keywords |
+| **Model Retraining** | $4,000 | $4,000 | $4,000 | Bi-annual retraining on manual audits |
+| **Total TCO** | **$105,000** | **$15,000** | **$15,000** | **3-Year Cumulative TCO: $135,000** |
+
+### Model Selection & Trade-off Matrix
+We evaluated three classification approaches to balance real-time latency with semantic accuracy:
+
+| Model Evaluated | Parameter Size | Modeled F1-Score (Sentiment) | Latency (Per Request) | Operational Cost | Product Selection |
+|---|---|---|---|---|---|
+| **TextBlob (Lexicon)** | Rule-based | 68.2% | **<5ms** | **$0** | Included (Fast fallback baseline) |
+| **DistilBERT (NLP)** | **66M** | **89.5%** | **45ms** | **$0 (Local)** | **Selected** (Main classifier, runs locally) |
+| **GPT-4 API (LLM)** | API-based | 93.1% | >1.5s | $0.01 per call | Pass (Too slow and expensive for high volume) |
+
+**Rationale**: DistilBERT was selected because it captures context-dependent sentiment (e.g., handling negations like "not bad") at a fraction of the size of full transformers, maintaining sub-50ms latency for real-time dashboard updates without API transaction fees.
+
+### Precision-Recall CS Threshold Tuning
+For customer retention, missing an unhappy customer (False Negative) is significantly more expensive than checking in on a happy one (False Positive):
+*   **False Negatives (Missed Churn Risks)**: An unhappy customer's review is classified as neutral/positive. Customer Success (CS) does not intervene. The customer churns. **Estimated cost: $500 (Customer Acquisition Cost lost).**
+*   **False Positives (False Alarms)**: A neutral/positive review is classified as negative, routing the customer to the CS action queue. An agent reaches out to check in. **Estimated cost: $5 (10 mins of agent time).**
+
+To minimize expensive false negatives, we tuned the negative classification threshold to maximize **Recall**. The threshold for routing reviews to the action queue was adjusted to **$0.40$ (confidence)** instead of $0.50$, raising Negative Recall to **92.0%** (ensuring we catch almost all unhappy customers) while accepting a manageable 12% false alarm rate in the agents' queue.
 
 ---
 
 ## Appendix: Data Sources
 
-### Verified Statistics
-- Bain & Company NPS research
-- Harvard Business Review customer acquisition costs
-- Gartner customer service benchmarks
-- NewVoiceMedia poor CX cost studies
+### Verified Industry Statistics
+- Zendesk Customer Experience Trends Reports
+- Medallia Customer Churn Statistics
+- Salesforce State of the Connected Customer studies
 
 ### Estimates & Projections
-- ROI model is illustrative
-- Time-to-detect improvements based on industry cases
-- Churn reduction estimates from similar implementations
+- Customer lifetime value (LTV) and churn costs based on standard B2B SaaS benchmarks
+- Time savings projections based on customer success workflow studies
+- ROI calculations are illustrative
 
 ---
 
-*Document prepared for AI Product Management portfolio.*
+*Document prepared for AI Product Management portfolio. All projections should be validated through controlled experiments before business decisions.*

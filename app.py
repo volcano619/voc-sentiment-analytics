@@ -25,6 +25,7 @@ from models.sentiment import SentimentAnalyzer
 from models.aspect import AspectExtractor, AspectSentimentAnalyzer
 from models.business_metrics import BusinessMetricsCalculator, DashboardMetrics
 import shared_ui
+import navigation
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -110,10 +111,13 @@ with st.sidebar:
     shared_ui.add_help_section(
         "Voice of Customer Analytics",
         "AI-powered intelligence system for analyzing customer feedback at scale.",
-        "Use the 'Analyze Text' tab for real-time sentiment or 'Executive Dashboard' for business-wide trends.",
-        "Traditional sentiment (Good/Bad) misses the 'Why'; this app identifies exactly WHICH area (Pricing, Support) is hurting NPS.",
-        "Instead of just seeing 10% unhappy customers, you see '80% of unhappy customers are complaining about DELIVERY'."
+        "Use the Executive Dashboard for overall stats, NPS tab to simulate recovery, or Action Queue to resolve issues.",
+        "Includes a interactive NPS Recovery simulator and prioritizes Customer Success workflows by Value-at-Risk using deterministic customer tiers (Enterprise/Premium/Standard).",
+        "Slide the Detractor simulator under the 'NPS & CSAT' tab to see estimated NPS improvements and CAC revenue saved."
     )
+    
+    # Portfolio Navigation (Agent D - PM)
+    navigation.add_portfolio_navigation("SentimentAnalysis")
 
 
 # ============================================================================
@@ -130,6 +134,7 @@ shared_ui.add_header(
 data = load_data()
 analyzer = get_analyzer()
 aspect_analyzer = get_aspect_analyzer(analyzer)
+calculator = BusinessMetricsCalculator(target_nps=target_nps, target_csat=target_csat)
 
 st.markdown("---")
 
@@ -268,7 +273,6 @@ with tab3:
     if 'results' not in dir() or not results:
         results = [aspect_analyzer.analyze(d["text"]) for d in data]
     
-    calculator = BusinessMetricsCalculator(target_nps=target_nps, target_csat=target_csat)
     nps_metrics = calculator.calculate_nps(results)
     csat_metrics = calculator.calculate_csat(results)
     
@@ -323,6 +327,37 @@ with tab3:
         
         shared_ui.create_metric_card("Average CSAT", f"{csat_metrics['csat']:.2f}/5", delta=f"{csat_metrics['vs_target']:+.2f} vs target")
         st.markdown(f"**Satisfied (4-5 stars):** {csat_metrics['satisfied_pct']}%")
+        
+    # NPS Recovery Simulation (Agent B - BA)
+    st.markdown("---")
+    st.markdown("### 📈 NPS Recovery Simulator")
+    st.markdown("Simulate how resolving detractors improves your NPS score and retains revenue:")
+    
+    n_detractors = nps_metrics["detractors"]
+    if n_detractors > 0:
+        resolved_sim = st.slider(
+            "Number of Detractors to resolve (converting them to Passives):",
+            min_value=0,
+            max_value=n_detractors,
+            value=0,
+            key="nps_sim_slider"
+        )
+        
+        sim_promoters = nps_metrics["promoters"]
+        sim_passives = nps_metrics["passives"] + resolved_sim
+        sim_detractors = nps_metrics["detractors"] - resolved_sim
+        sim_total = sim_promoters + sim_passives + sim_detractors
+        
+        sim_nps = (sim_promoters - sim_detractors) / sim_total * 100
+        revenue_retained_sim = resolved_sim * 500
+        
+        col_sim1, col_sim2 = st.columns(2)
+        with col_sim1:
+            st.metric("Simulated NPS", f"{sim_nps:+.1f}", delta=f"{sim_nps - nps_metrics['nps']:+.1f} Improvement")
+        with col_sim2:
+            st.metric("Modeled Revenue Retained", f"${revenue_retained_sim:,}*", delta="Projected CAC saved")
+    else:
+        st.success("No detractors currently. Your NPS is optimized!")
 
 
 # ============================================================================
@@ -396,8 +431,32 @@ with tab5:
     else:
         st.warning(f"⚠️ {len(action_queue)} customers need attention")
         
-        # Convert to dataframe for display
-        df = pd.DataFrame(action_queue)
+        # Convert to dataframe for display and enrich with CLV metrics (Agent D - PM)
+        enriched_queue = []
+        for a in action_queue:
+            cust_id = str(a["customer_id"])
+            last_char = cust_id[-1] if cust_id else "0"
+            if last_char in ["1", "4", "7", "9"]:
+                tier = "Enterprise"
+                ltv = 10000
+            elif last_char in ["2", "5", "8"]:
+                tier = "Premium"
+                ltv = 2500
+            else:
+                tier = "Standard"
+                ltv = 500
+            
+            val_at_risk = a["churn_risk"] * ltv
+            enriched_queue.append({
+                **a,
+                "tier": tier,
+                "ltv": ltv,
+                "val_at_risk": val_at_risk
+            })
+            
+        # Prioritize by value_at_risk descending (Agent D - PM)
+        enriched_queue.sort(key=lambda x: x["val_at_risk"], reverse=True)
+        df = pd.DataFrame(enriched_queue)
         
         # Filters
         col1, col2 = st.columns(2)
@@ -421,15 +480,19 @@ with tab5:
         
         # Display
         for _, row in filtered_df.iterrows():
-            with st.expander(f"{row['urgency']} {row['customer_id']} - {row['sentiment']}"):
+            badge_icon = "🏢" if row['tier'] == "Enterprise" else "💎" if row['tier'] == "Premium" else "👤"
+            expander_title = f"{row['urgency']} | {badge_icon} {row['customer_id']} ({row['tier']}) — Value at Risk: ${row['val_at_risk']:,.0f}*"
+            with st.expander(expander_title):
                 col1, col2 = st.columns([2, 1])
                 
                 with col1:
                     st.markdown(f"**Feedback:** {row['text_preview']}")
                     st.markdown(f"**Aspect:** {row['aspect'].replace('_', ' ').title()}")
+                    st.markdown(f"**Customer Tier:** {row['tier']} (CLV: ${row['ltv']:,})")
                 
                 with col2:
                     st.markdown(f"**Churn Risk:** {row['churn_risk']:.0%}")
+                    st.markdown(f"**Value at Risk:** ${row['val_at_risk']:,.0f}*")
                     st.markdown(f"**Action:** {row['recommended_action']}")
 
 
